@@ -1,0 +1,600 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>Gara (愛)</title>
+
+  <!-- Support PWA iOS & Android -->
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Gara">
+
+  <!-- React, ReactDOM, Styled-Components & Babel via CDN -->
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/styled-components@5.3.11/dist/styled-components.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Shippori+Mincho:wght@500;700&display=swap');
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    body {
+      background-color: #E6E6E6;
+      font-family: 'Shippori Mincho', serif;
+      overflow: hidden;
+      height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+  </style>
+</head>
+<body>
+
+  <div id="root"></div>
+
+  <script type="text/babel">
+    const { useState, useEffect } = React;
+    const styled = window.styled;
+
+    // --- STYLED COMPONENTS (Flat Design & Skeuomorphisme Subtil) ---
+
+    const AppContainer = styled.div`
+      width: 100vw;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      background: #E6E6E6;
+    `;
+
+    const KanjiWrapper = styled.div`
+      position: relative;
+      width: 260px;
+      height: 260px;
+      cursor: pointer;
+      filter: drop-shadow(0px 6px 12px rgba(0, 0, 0, 0.08));
+      transition: transform 0.2s ease;
+
+      &:active {
+        transform: scale(0.98);
+      }
+    `;
+
+    const BloodFill = styled.div`
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      width: 100%;
+      height: ${props => props.fillLevel}%;
+      background-color: #8B0000; /* Rouge sang plat, pas de gradient */
+      transition: height 1s cubic-bezier(0.16, 1, 0.3, 1);
+    `;
+
+    const SVGMask = styled.svg`
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 2;
+    `;
+
+    const ModalOverlay = styled.div`
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      background: rgba(230, 230, 230, 0.96);
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      z-index: 10;
+      padding: 32px;
+      animation: fadeIn 0.3s ease;
+
+      @keyframes fadeIn {
+        from { opacity: 0; }
+        to { opacity: 1; }
+      }
+    `;
+
+    const DialogueText = styled.p`
+      font-size: 13px;
+      letter-spacing: 2px;
+      color: #1A1A1A;
+      margin-bottom: 24px;
+      text-align: center;
+      max-width: 280px;
+      line-height: 1.6;
+    `;
+
+    const ButtonGroup = styled.div`
+      display: flex;
+      gap: 12px;
+    `;
+
+    const FlatButton = styled.button`
+      background: #D9D9D9;
+      border: 1px solid #B3B3B3;
+      padding: 10px 24px;
+      font-family: inherit;
+      font-size: 11px;
+      letter-spacing: 1px;
+      color: #1A1A1A;
+      cursor: pointer;
+      box-shadow: 0 2px 0 rgba(0, 0, 0, 0.04);
+      transition: background 0.1s;
+
+      &:active {
+        background: #CCCCCC;
+        transform: translateY(1px);
+      }
+    `;
+
+    const InputField = styled.textarea`
+      width: 100%;
+      max-width: 300px;
+      height: 90px;
+      background: #F0F0F0;
+      border: 1px solid #B3B3B3;
+      padding: 12px;
+      font-family: inherit;
+      font-size: 12px;
+      color: #1A1A1A;
+      outline: none;
+      resize: none;
+      margin-bottom: 16px;
+      box-shadow: inset 0 1px 3px rgba(0,0,0,0.05);
+    `;
+
+    const WarningText = styled.span`
+      font-size: 10px;
+      color: #8B0000;
+      letter-spacing: 1px;
+      margin-bottom: 12px;
+      height: 14px;
+    `;
+
+    // --- APPLICATION LOGIC ---
+
+    function GaraApp() {
+      const [step, setStep] = useState('IDLE'); // IDLE, PROMPT_WISH, ENTER_WISH, ENTER_MEMORY
+      const [fillLevel, setFillLevel] = useState(0);
+      const [wish, setWish] = useState('');
+      const [memory, setMemory] = useState('');
+      const [warning, setWarning] = useState('');
+
+      // Gestion du clic sur le Kanji principal
+      const handleKanjiClick = () => {
+        if (step === 'IDLE' && fillLevel === 0) {
+          setStep('PROMPT_WISH');
+        }
+      };
+
+      // Si le joueur refuse, l'app se détruit visuellement
+      const handleRefuse = () => {
+        document.body.innerHTML = `
+          <div style='background:#E6E6E6;height:100vh;display:flex;justify-content:center;align-items:center;font-family:serif;font-size:11px;letter-spacing:3px;color:#8B0000;'>
+            [ PROTOCOLE ANNULÉ — SYSTÈME EFFACÉ ]
+          </div>`;
+      };
+
+      // Validation du vœu
+      const handleSubmitWish = () => {
+        if (wish.trim().length < 3) {
+          setWarning("L'intention est trop faible.");
+          return;
+        }
+        setWarning('');
+        setStep('ENTER_MEMORY');
+      };
+
+      // Validation du souvenir (Analyse sémantique locale & Anti-fraude)
+      const handleSubmitMemory = () => {
+        if (memory.trim().length < 5) {
+          setWarning("Ce souvenir n'a pas assez de poids.");
+          return;
+        }
+
+        // Vérification anti-doublon dans le localStorage
+        const savedMemories = JSON.parse(localStorage.getItem('gara_memories') || '[]');
+        const cleanMemory = memory.trim().toLowerCase();
+
+        if (savedMemories.includes(cleanMemory)) {
+          setWarning("Ce résidu a déjà été consumé.");
+          return;
+        }
+
+        // Sauvegarde locale du souvenir
+        savedMemories.push(cleanMemory);
+        localStorage.setItem('gara_memories', JSON.stringify(savedMemories));
+
+        // Calcul sémantique du poids (Longueur + mots-clés lourds)
+        let weightScore = Math.min(100, memory.length * 1.5 + wish.length * 2);
+        const heavyWords = ['jamais', 'oublier', 'disparaître', 'regret', 'personne', 'pourquoi'];
+        heavyWords.forEach(word => {
+          if (memory.toLowerCase().includes(word)) weightScore += 20;
+        });
+
+        setFillLevel(Math.round(weightScore));
+        setStep('IDLE');
+        setMemory('');
+      };
+
+      return (
+        <AppContainer>
+          {/* Le Kanji vide qui se remplit de sang plat */}
+          <KanjiWrapper onClick={handleKanjiClick}>
+            <BloodFill fillLevel={fillLevel} />
+            
+            <SVGMask viewBox="0 0 100 100">
+              <defs>
+                <mask id="kanji-mask">
+                  <rect width="100" height="100" fill="white" />
+                  <text x="50%" y="74%" font-size="72" font-family="serif" text-anchor="middle" fill="black" font-weight="bold">愛</text>
+                </mask>
+              </defs>
+              <rect width="100" height="100" fill="#E6E6E6" mask="url(#kanji-mask)" />
+              <text x="50%" y="74%" font-size="72" font-family="serif" text-anchor="middle" fill="none" stroke="#1A1A1A" stroke-width="0.4">愛</text>
+            </SVGMask>
+          </KanjiWrapper>
+
+          {/* Étape 1 : Le piège binaire (Oui / Non) */}
+          {step === 'PROMPT_WISH' && (
+            <ModalOverlay>
+              <DialogueText>Souhaitez-vous formuler un vœu ?</DialogueText>
+              <ButtonGroup>
+                <FlatButton onClick={() => setStep('ENTER_WISH')}>OUI</FlatButton>
+                <FlatButton onClick={handleRefuse}>NON</FlatButton>
+              </ButtonGroup>
+            </ModalOverlay>
+          )}
+
+          {/* Étape 2 : Saisie du vœu */}
+          {step === 'ENTER_WISH' && (
+            <ModalOverlay>
+              <DialogueText>Formulez l'intention.</DialogueText>
+              <InputField 
+                value={wish} 
+                onChange={(e) => setWish(e.target.value)} 
+                placeholder="Écrivez ici..."
+              />
+              <WarningText>{warning}</WarningText>
+              <FlatButton onClick={handleSubmitWish}>SCELLER</FlatButton>
+            </ModalOverlay>
+          )}
+
+          {/* Étape 3 : Offrande du souvenir */}
+          {step === 'ENTER_MEMORY' && (
+            <ModalOverlay>
+              <DialogueText>Sacrifiez un souvenir pour alimenter ce vœu.</DialogueText>
+              <InputField 
+                value={memory} 
+                onChange={(e) => setMemory(e.target.value)} 
+                placeholder="Racontez un souvenir..."
+              />
+              <WarningText>{warning}</WarningText>
+              <FlatButton onClick={handleSubmitMemory}>OFFRIR</FlatButton>
+            </ModalOverlay>
+          )}
+        </AppContainer>
+      );
+    }
+
+    ReactDOM.render(<GaraApp />, document.getElementById('root'));
+  </script>
+</body>
+</html>
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>Gara (愛)</title>
+
+  <!-- Support PWA iOS & Android -->
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Gara">
+
+  <!-- React, ReactDOM, Styled-Components & Babel via CDN -->
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/styled-components@5.3.11/dist/styled-components.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Shippori+Mincho:wght@500;700&display=swap');
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    body {
+      background-color: #E6E6E6;
+      font-family: 'Shippori Mincho', serif;
+      overflow: hidden;
+      height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+  </style>
+</head>
+<body>
+
+  <div id="root"></div>
+
+  <script type="text/babel">
+    const { useState, useEffect } = React;
+    const styled = window.styled;
+
+    // --- STYLED COMPONENTS (Flat Design & Skeuomorphisme Subtil) ---
+
+    const AppContainer = styled.div`
+      width: 100vw;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      background: #E6E6E6;
+    `;
+
+    const KanjiWrapper = styled.div`
+      position: relative;
+      width: 260px;
+      height: 260px;
+      cursor: pointer;
+      filter: drop-shadow(0px 6px 12px rgba(0, 0, 0, 0.08));
+      transition: transform 0.2s ease;
+
+      &:active {
+        transform: scale(0.98);
+      }
+    `;
+
+    const BloodFill = styled.div`
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      width: 100%;
+      height: ${props => props.fillLevel}%;
+      background-color: #8B0000; /* Rouge sang plat, pas de gradient */
+      transition: height 1s cubic-bezier(0.16, 1, 0.3, 1);
+    `;
+
+    const SVGMask = styled.svg`
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 2;
+    `;
+
+    const ModalOverlay = styled.div`
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      background: rgba(230, 230, 230, 0.96);
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      z-index: 10;
+      padding: 32px;
+      animation: fadeIn 0.3s ease;
+
+      @keyframes fadeIn {
+        from { opacity: 0; }
+        to { opacity: 1; }
+      }
+    `;
+
+    const DialogueText = styled.p`
+      font-size: 13px;
+      letter-spacing: 2px;
+      color: #1A1A1A;
+      margin-bottom: 24px;
+      text-align: center;
+      max-width: 280px;
+      line-height: 1.6;
+    `;
+
+    const ButtonGroup = styled.div`
+      display: flex;
+      gap: 12px;
+    `;
+
+    const FlatButton = styled.button`
+      background: #D9D9D9;
+      border: 1px solid #B3B3B3;
+      padding: 10px 24px;
+      font-family: inherit;
+      font-size: 11px;
+      letter-spacing: 1px;
+      color: #1A1A1A;
+      cursor: pointer;
+      box-shadow: 0 2px 0 rgba(0, 0, 0, 0.04);
+      transition: background 0.1s;
+
+      &:active {
+        background: #CCCCCC;
+        transform: translateY(1px);
+      }
+    `;
+
+    const InputField = styled.textarea`
+      width: 100%;
+      max-width: 300px;
+      height: 90px;
+      background: #F0F0F0;
+      border: 1px solid #B3B3B3;
+      padding: 12px;
+      font-family: inherit;
+      font-size: 12px;
+      color: #1A1A1A;
+      outline: none;
+      resize: none;
+      margin-bottom: 16px;
+      box-shadow: inset 0 1px 3px rgba(0,0,0,0.05);
+    `;
+
+    const WarningText = styled.span`
+      font-size: 10px;
+      color: #8B0000;
+      letter-spacing: 1px;
+      margin-bottom: 12px;
+      height: 14px;
+    `;
+
+    // --- APPLICATION LOGIC ---
+
+    function GaraApp() {
+      const [step, setStep] = useState('IDLE'); // IDLE, PROMPT_WISH, ENTER_WISH, ENTER_MEMORY
+      const [fillLevel, setFillLevel] = useState(0);
+      const [wish, setWish] = useState('');
+      const [memory, setMemory] = useState('');
+      const [warning, setWarning] = useState('');
+
+      // Gestion du clic sur le Kanji principal
+      const handleKanjiClick = () => {
+        if (step === 'IDLE' && fillLevel === 0) {
+          setStep('PROMPT_WISH');
+        }
+      };
+
+      // Si le joueur refuse, l'app se détruit visuellement
+      const handleRefuse = () => {
+        document.body.innerHTML = `
+          <div style='background:#E6E6E6;height:100vh;display:flex;justify-content:center;align-items:center;font-family:serif;font-size:11px;letter-spacing:3px;color:#8B0000;'>
+            [ PROTOCOLE ANNULÉ — SYSTÈME EFFACÉ ]
+          </div>`;
+      };
+
+      // Validation du vœu
+      const handleSubmitWish = () => {
+        if (wish.trim().length < 3) {
+          setWarning("L'intention est trop faible.");
+          return;
+        }
+        setWarning('');
+        setStep('ENTER_MEMORY');
+      };
+
+      // Validation du souvenir (Analyse sémantique locale & Anti-fraude)
+      const handleSubmitMemory = () => {
+        if (memory.trim().length < 5) {
+          setWarning("Ce souvenir n'a pas assez de poids.");
+          return;
+        }
+
+        // Vérification anti-doublon dans le localStorage
+        const savedMemories = JSON.parse(localStorage.getItem('gara_memories') || '[]');
+        const cleanMemory = memory.trim().toLowerCase();
+
+        if (savedMemories.includes(cleanMemory)) {
+          setWarning("Ce résidu a déjà été consumé.");
+          return;
+        }
+
+        // Sauvegarde locale du souvenir
+        savedMemories.push(cleanMemory);
+        localStorage.setItem('gara_memories', JSON.stringify(savedMemories));
+
+        // Calcul sémantique du poids (Longueur + mots-clés lourds)
+        let weightScore = Math.min(100, memory.length * 1.5 + wish.length * 2);
+        const heavyWords = ['jamais', 'oublier', 'disparaître', 'regret', 'personne', 'pourquoi'];
+        heavyWords.forEach(word => {
+          if (memory.toLowerCase().includes(word)) weightScore += 20;
+        });
+
+        setFillLevel(Math.round(weightScore));
+        setStep('IDLE');
+        setMemory('');
+      };
+
+      return (
+        <AppContainer>
+          {/* Le Kanji vide qui se remplit de sang plat */}
+          <KanjiWrapper onClick={handleKanjiClick}>
+            <BloodFill fillLevel={fillLevel} />
+            
+            <SVGMask viewBox="0 0 100 100">
+              <defs>
+                <mask id="kanji-mask">
+                  <rect width="100" height="100" fill="white" />
+                  <text x="50%" y="74%" font-size="72" font-family="serif" text-anchor="middle" fill="black" font-weight="bold">愛</text>
+                </mask>
+              </defs>
+              <rect width="100" height="100" fill="#E6E6E6" mask="url(#kanji-mask)" />
+              <text x="50%" y="74%" font-size="72" font-family="serif" text-anchor="middle" fill="none" stroke="#1A1A1A" stroke-width="0.4">愛</text>
+            </SVGMask>
+          </KanjiWrapper>
+
+          {/* Étape 1 : Le piège binaire (Oui / Non) */}
+          {step === 'PROMPT_WISH' && (
+            <ModalOverlay>
+              <DialogueText>Souhaitez-vous formuler un vœu ?</DialogueText>
+              <ButtonGroup>
+                <FlatButton onClick={() => setStep('ENTER_WISH')}>OUI</FlatButton>
+                <FlatButton onClick={handleRefuse}>NON</FlatButton>
+              </ButtonGroup>
+            </ModalOverlay>
+          )}
+
+          {/* Étape 2 : Saisie du vœu */}
+          {step === 'ENTER_WISH' && (
+            <ModalOverlay>
+              <DialogueText>Formulez l'intention.</DialogueText>
+              <InputField 
+                value={wish} 
+                onChange={(e) => setWish(e.target.value)} 
+                placeholder="Écrivez ici..."
+              />
+              <WarningText>{warning}</WarningText>
+              <FlatButton onClick={handleSubmitWish}>SCELLER</FlatButton>
+            </ModalOverlay>
+          )}
+
+          {/* Étape 3 : Offrande du souvenir */}
+          {step === 'ENTER_MEMORY' && (
+            <ModalOverlay>
+              <DialogueText>Sacrifiez un souvenir pour alimenter ce vœu.</DialogueText>
+              <InputField 
+                value={memory} 
+                onChange={(e) => setMemory(e.target.value)} 
+                placeholder="Racontez un souvenir..."
+              />
+              <WarningText>{warning}</WarningText>
+              <FlatButton onClick={handleSubmitMemory}>OFFRIR</FlatButton>
+            </ModalOverlay>
+          )}
+        </AppContainer>
+      );
+    }
+
+    ReactDOM.render(<GaraApp />, document.getElementById('root'));
+  </script>
+</body>
+</html>
