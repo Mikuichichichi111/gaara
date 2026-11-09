@@ -10,12 +10,6 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="Gara">
 
-  <!-- React, ReactDOM, Styled-Components & Babel via CDN -->
-  <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
-  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-  <script src="https://unpkg.com/styled-components@5.3.11/dist/styled-components.min.js"></script>
-  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Shippori+Mincho:wght@500;700&display=swap');
 
@@ -35,75 +29,45 @@
       display: flex;
       justify-content: center;
       align-items: center;
-    }
-  </style>
-</head>
-<body>
-
-  <div id="root"></div>
-
-  <script type="text/babel">
-    const { useState, useEffect } = React;
-    const styled = window.styled;
-
-    // --- STYLED COMPONENTS ---
-
-    const AppContainer = styled.div`
-      width: 100vw;
-      height: 100vh;
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
-      align-items: center;
-      background: ${props => props.isAngry ? '#8B0000' : '#E6E6E6'};
       transition: background 0.3s ease;
-      padding: 24px;
-    `;
+    }
 
-    const GridContainer = styled.div`
-      display: flex;
-      flex-wrap: wrap;
-      justify-content: center;
-      align-items: center;
-      gap: 20px;
-      max-width: 100%;
-      max-height: 80vh;
-      overflow: hidden;
-    `;
-
-    const KanjiWrapper = styled.div`
+    /* Le conteneur du Kanji */
+    .kanji-container {
       position: relative;
-      width: ${props => props.size}px;
-      height: ${props => props.size}px;
+      width: 240px;
+      height: 240px;
       cursor: pointer;
-      filter: drop-shadow(0px 4px 8px rgba(0, 0, 0, 0.08));
+      filter: drop-shadow(0px 6px 12px rgba(0, 0, 0, 0.08));
       transition: transform 0.2s ease;
+    }
 
-      &:active {
-        transform: scale(0.96);
-      }
-    `;
+    .kanji-container:active {
+      transform: scale(0.96);
+    }
 
-    const BloodFill = styled.div`
+    /* Le sang plat qui monte (#8B0000) */
+    .blood-fill {
       position: absolute;
       bottom: 0;
       left: 0;
       width: 100%;
-      height: ${props => props.fillLevel}%;
+      height: 0%;
       background-color: #8B0000;
       transition: height 1s cubic-bezier(0.16, 1, 0.3, 1);
-    `;
+    }
 
-    const SVGMask = styled.svg`
+    .svg-mask {
       position: absolute;
       top: 0;
       left: 0;
       width: 100%;
       height: 100%;
       z-index: 2;
-    `;
+    }
 
-    const ModalOverlay = styled.div`
+    /* Modales et dialogues */
+    .modal-overlay {
       position: fixed;
       top: 0;
       left: 0;
@@ -116,24 +80,28 @@
       align-items: center;
       z-index: 10;
       padding: 32px;
-    `;
+    }
 
-    const DialogueText = styled.p`
+    .hidden {
+      display: none !important;
+    }
+
+    .dialogue-text {
       font-size: 13px;
       letter-spacing: 2px;
-      color: ${props => props.angry ? '#FFFFFF' : '#1A1A1A'};
+      color: #1A1A1A;
       margin-bottom: 24px;
       text-align: center;
       max-width: 300px;
       line-height: 1.6;
-    `;
+    }
 
-    const ButtonGroup = styled.div`
+    .button-group {
       display: flex;
       gap: 12px;
-    `;
+    }
 
-    const FlatButton = styled.button`
+    .flat-btn {
       background: #D9D9D9;
       border: 1px solid #B3B3B3;
       padding: 10px 24px;
@@ -143,14 +111,14 @@
       color: #1A1A1A;
       cursor: pointer;
       box-shadow: 0 2px 0 rgba(0, 0, 0, 0.04);
+    }
 
-      &:active {
-        background: #CCCCCC;
-        transform: translateY(1px);
-      }
-    `;
+    .flat-btn:active {
+      background: #CCCCCC;
+      transform: translateY(1px);
+    }
 
-    const InputField = styled.textarea`
+    .input-field {
       width: 100%;
       max-width: 300px;
       height: 80px;
@@ -163,173 +131,166 @@
       outline: none;
       resize: none;
       margin-bottom: 12px;
-    `;
+    }
 
-    const WarningText = styled.span`
+    .warning-text {
       font-size: 10px;
       color: #8B0000;
       letter-spacing: 1px;
       margin-bottom: 12px;
-    `;
+      height: 14px;
+    }
+  </style>
+</head>
+<body>
 
-    const TutorialBox = styled.div`
-      border: 1px solid #1A1A1A;
-      padding: 24px;
-      max-width: 320px;
-      text-align: center;
-      background: #F0F0F0;
-    `;
+  <!-- Le Kanji 愛 central -->
+  <div class="kanji-container" id="mainKanji">
+    <div class="blood-fill" id="bloodFill"></div>
+    <svg class="svg-mask" viewBox="0 0 100 100">
+      <defs>
+        <mask id="kanji-mask">
+          <rect width="100" height="100" fill="white" />
+          <text x="50%" y="74%" font-size="72" font-family="serif" text-anchor="middle" fill="black" font-weight="bold">愛</text>
+        </mask>
+      </defs>
+      <rect width="100" height="100" fill="#E6E6E6" mask="url(#kanji-mask)" />
+      <text x="50%" y="74%" font-size="72" font-family="serif" text-anchor="middle" fill="none" stroke="#1A1A1A" stroke-width="0.4">愛</text>
+    </svg>
+  </div>
 
-    // --- APPLICATION PRINCIPALE ---
+  <!-- Étape 1 : Demande binaire -->
+  <div class="modal-overlay hidden" id="modalPrompt">
+    <p class="dialogue-text">Souhaitez-vous formuler un vœu ?</p>
+    <div class="button-group">
+      <button class="flat-btn" id="btnYes">OUI</button>
+      <button class="flat-btn" id="btnNo">NON</button>
+    </div>
+  </div>
 
-    function GaraApp() {
-      const [isStandalone, setIsStandalone] = useState(false);
-      const [wishes, setWishes] = useState([]); // Tableau des vœux actifs
-      const [step, setStep] = useState('IDLE');
-      const [wishInput, setWishInput] = useState('');
-      const [memoryInput, setMemoryInput] = useState('');
-      const [warning, setWarning] = useState('');
-      const [isAngry, setIsAngry] = useState(false);
-      const [maxAllowedKanjis, setMaxAllowedKanjis] = useState(1);
+  <!-- Étape 2 : Saisie du vœu -->
+  <div class="modal-overlay hidden" id="modalWish">
+    <p class="dialogue-text">Formulez l'intention.</p>
+    <textarea class="input-field" id="wishInput" placeholder="Écrivez ici..."></textarea>
+    <div class="warning-text" id="wishWarning"></div>
+    <button class="flat-btn" id="btnSubmitWish">SCELLER</button>
+  </div>
 
-      // 1. Détection PWA (Mode Installé)
-      useEffect(() => {
-        const checkStandalone = () => {
-          const isIOSStandalone = window.navigator.standalone === true;
-          const isDisplayStandalone = window.matchMedia('(display-mode: standalone)').matches;
-          setIsStandalone(isIOSStandalone || isDisplayStandalone);
-        };
+  <!-- Étape 3 : Offrande du souvenir -->
+  <div class="modal-overlay hidden" id="modalMemory">
+    <p class="dialogue-text">Sacrifiez un souvenir pour alimenter ce vœu.</p>
+    <textarea class="input-field" id="memoryInput" placeholder="Racontez un souvenir..."></textarea>
+    <div class="warning-text" id="memoryWarning"></div>
+    <button class="flat-btn" id="btnSubmitMemory">OFFRIR</button>
+  </div>
 
-        checkStandalone();
-        window.addEventListener('resize', checkStandalone);
+  <!-- État de colère (Doublon) -->
+  <div class="modal-overlay hidden" id="modalAngry" style="background: #8B0000;">
+    <p class="dialogue-text" style="color: #FFFFFF;">
+      [ ANOMALIE DÉTECTÉE ]<br><br>
+      Ce souvenir a déjà été consumé.<br>
+      Ne tentez pas de tromper Gara.
+    </p>
+  </div>
 
-        // Calcul de la capacité de l'écran (Screen Real Estate)
-        const calculateCapacity = () => {
-          const h = window.innerHeight;
-          const w = window.innerWidth;
-          if (h < 600 || w < 360) setMaxAllowedKanjis(1); // Petit écran / Vieux mobile
-          else if (h < 800) setMaxAllowedKanjis(2);
-          else setMaxAllowedKanjis(4);
-        };
+  <script>
+    // Éléments du DOM
+    const mainKanji = document.getElementById('mainKanji');
+    const bloodFill = document.getElementById('bloodFill');
+    
+    const modalPrompt = document.getElementById('modalPrompt');
+    const modalWish = document.getElementById('modalWish');
+    const modalMemory = document.getElementById('modalMemory');
+    const modalAngry = document.getElementById('modalAngry');
 
-        calculateCapacity();
-        window.addEventListener('resize', calculateCapacity);
-      }, []);
+    const btnYes = document.getElementById('btnYes');
+    const btnNo = document.getElementById('btnNo');
+    const btnSubmitWish = document.getElementById('btnSubmitWish');
+    const btnSubmitMemory = document.getElementById('btnSubmitMemory');
 
-      // 2. Traitement du Refus
-      const handleRefuse = () => {
-        document.body.innerHTML = `
-          <div style='background:#E6E6E6;height:100vh;display:flex;justify-content:center;align-items:center;font-family:serif;font-size:11px;letter-spacing:3px;color:#8B0000;'>
-            [ ACCÈS REFUSÉ — SYSTEM DETACHED ]
-          </div>`;
-      };
+    const wishInput = document.getElementById('wishInput');
+    const memoryInput = document.getElementById('memoryInput');
+    const wishWarning = document.getElementById('wishWarning');
+    const memoryWarning = document.getElementById('memoryWarning');
 
-      // 3. Traitement du Vœu
-      const handleSubmitWish = () => {
-        if (wishInput.trim().length < 3) {
-          setWarning("L'intention est trop faible.");
-          return;
-        }
-        setWarning('');
-        setStep('ENTER_MEMORY');
-      };
+    let currentWish = '';
+    let isFilled = false;
 
-      // 4. Traitement du Souvenir (Anti-fraude & Colère)
-      const handleSubmitMemory = () => {
-        const cleanMemory = memoryInput.trim().toLowerCase();
-        const savedMemories = JSON.parse(localStorage.getItem('gara_memories') || '[]');
+    // Clic sur le Kanji vide pour démarrer
+    mainKanji.addEventListener('click', () => {
+      if (!isFilled) {
+        modalPrompt.classList.remove('hidden');
+      }
+    });
 
-        if (savedMemories.includes(cleanMemory)) {
-          // Trigger l'état COLÈRE
-          setIsAngry(true);
-          setStep('ANGRY_STATE');
-          setTimeout(() => {
-            setIsAngry(false);
-            setStep('IDLE');
-            setMemoryInput('');
-            setWishInput('');
-          }, 3000);
-          return;
-        }
+    // Refus -> Autodestruction visuelle
+    btnNo.addEventListener('click', () => {
+      document.body.innerHTML = `
+        <div style='background:#E6E6E6;height:100vh;width:100vw;display:flex;justify-content:center;align-items:center;font-family:serif;font-size:11px;letter-spacing:3px;color:#8B0000;'>
+          [ PROTOCOLE ANNULÉ — SYSTÈME EFFACÉ ]
+        </div>`;
+    });
 
-        // Sauvegarde du souvenir
-        savedMemories.push(cleanMemory);
-        localStorage.setItem('gara_memories', JSON.stringify(savedMemories));
+    // Acceptation
+    btnYes.addEventListener('click', () => {
+      modalPrompt.classList.add('hidden');
+      modalWish.classList.remove('hidden');
+    });
 
-        // Calcul du score sémantique
-        let weight = Math.min(100, memoryInput.length * 2 + wishInput.length * 2);
+    // Validation du Vœu
+    btnSubmitWish.addEventListener('click', () => {
+      if (wishInput.value.trim().length < 3) {
+        wishWarning.innerText = "L'intention est trop faible.";
+        return;
+      }
+      currentWish = wishInput.value.trim();
+      wishWarning.innerText = "";
+      modalWish.classList.add('hidden');
+      modalMemory.classList.remove('hidden');
+    });
 
-        const newWishObj = {
-          id: Date.now(),
-          text: wishInput,
-          fill: weight
-        };
-
-        setWishes([...wishes, newWishObj]);
-        setWishInput('');
-        setMemoryInput('');
-        setStep('IDLE');
-      };
-
-      // Clic sur le bouton central quand vide
-      const handleMainClick = () => {
-        if (wishes.length >= maxAllowedKanjis) {
-          alert("L'espace écran est saturé. Supprimez un vœu pour libérer le réceptacle.");
-          return;
-        }
-        setStep('PROMPT_WISH');
-      };
-
-      // Si l'application N'EST PAS installée -> Affichage du Tutoriel
-      if (!isStandalone) {
-        return (
-          <AppContainer>
-            <TutorialBox>
-              <DialogueText style={{marginBottom: '16px'}}>
-                [ ACCÈS RESTREINT ]<br/><br/>
-                Gara ne peut pas s'infiltrer depuis un navigateur standard.
-              </DialogueText>
-              <DialogueText style={{fontSize: '11px', color: '#666'}}>
-                Pour sceller le pacte :<br/><br/>
-                <b>iOS (Safari) :</b> Partager ➔ "Sur l'écran d'accueil"<br/>
-                <b>Android (Chrome) :</b> Options ➔ "Installer l'application"
-              </DialogueText>
-            </TutorialBox>
-          </AppContainer>
-        );
+    // Validation du Souvenir & Remplissage du sang
+    btnSubmitMemory.addEventListener('click', () => {
+      const memoryText = memoryInput.value.trim().toLowerCase();
+      if (memoryText.length < 5) {
+        memoryWarning.innerText = "Ce souvenir n'a pas assez de poids.";
+        return;
       }
 
-      // Si l'application EST installée -> Exécution de Gara
-      return (
-        <AppContainer isAngry={isAngry}>
-          {/* Grille dynamique des Kanjis */}
-          <GridContainer>
-            {wishes.length === 0 ? (
-              // Kanji initial vide
-              <KanjiWrapper size={240} onClick={handleMainClick}>
-                <BloodFill fillLevel={0} />
-                <SVGMask viewBox="0 0 100 100">
-                  <defs>
-                    <mask id="kanji-mask-main">
-                      <rect width="100" height="100" fill="white" />
-                      <text x="50%" y="74%" font-size="72" font-family="serif" text-anchor="middle" fill="black" font-weight="bold">愛</text>
-                    </mask>
-                  </defs>
-                  <rect width="100" height="100" fill="#E6E6E6" mask="url(#kanji-mask-main)" />
-                  <text x="50%" y="74%" font-size="72" font-family="serif" text-anchor="middle" fill="none" stroke="#1A1A1A" stroke-width="0.4">愛</text>
-                </SVGMask>
-              </KanjiWrapper>
-            ) : (
-              wishes.map((w) => (
-                <KanjiWrapper key={w.id} size={wishes.length > 1 ? 160 : 240}>
-                  <BloodFill fillLevel={w.fill} />
-                  <SVGMask viewBox="0 0 100 100">
-                    <defs>
-                      <mask id={`kanji-mask-${w.id}`}>
-                        <rect width="100" height="100" fill="white" />
-                        <text x="50%" y="74%" font-size="72" font-family="serif" text-anchor="middle" fill="black" font-weight="bold">愛</text>
-                      </mask>
-                    </defs>
-                    <rect width="100" height="100" fill="#E6E6E6" mask={`url(#kanji-mask-${w.id})`} />
-                    <text x="50%" y="74%" font-size="72" font-family="serif" text-anchor="middle" fill="none" stroke="#1A1A1A" stroke-width="0.4">愛</text>
-                  </SVGMask>
+      // Vérification anti-doublon dans le localStorage
+      const savedMemories = JSON.parse(localStorage.getItem('gara_memories') || '[]');
+      if (savedMemories.includes(memoryText)) {
+        // Déclencher l'état de colère
+        modalMemory.classList.add('hidden');
+        modalAngry.classList.remove('hidden');
+        setTimeout(() => {
+          modalAngry.classList.add('hidden');
+          memoryInput.value = '';
+          wishInput.value = '';
+        }, 3000);
+        return;
+      }
+
+      // Enregistrer le souvenir
+      savedMemories.push(memoryText);
+      localStorage.setItem('gara_memories', JSON.stringify(savedMemories));
+
+      // Calcul du niveau de sang (Poids sémantique local)
+      let score = Math.min(100, memoryText.length * 2 + currentWish.length * 2);
+      const heavyWords = ['jamais', 'oublier', 'disparaître', 'regret', 'personne', 'pourquoi'];
+      heavyWords.forEach(w => {
+        if (memoryText.includes(w)) score += 20;
+      });
+
+      // Remplir le Kanji avec le sang (#8B0000)
+      bloodFill.style.height = Math.min(100, score) + '%';
+      isFilled = true;
+
+      // Fermer les modales
+      modalMemory.classList.add('hidden');
+      memoryInput.value = '';
+      wishInput.value = '';
+    });
+  </script>
+</body>
+</html>
