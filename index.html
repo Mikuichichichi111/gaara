@@ -32,38 +32,23 @@
       transition: background 0.3s ease;
     }
 
-    /* Le conteneur du Kanji */
-    .kanji-container {
-      position: relative;
-      width: 240px;
-      height: 240px;
+    /* Le Kanji central avec remplissage de sang en CSS pur (Zero SVG bug) */
+    .kanji-display {
+      font-size: 140px;
+      font-weight: bold;
+      text-align: center;
       cursor: pointer;
+      line-height: 1;
+      /* Gradient initial : 0% de sang (#8B0000), le reste en noir/gris de contour (#1A1A1A) */
+      background: linear-gradient(to top, #8B0000 0%, #1A1A1A 0%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
       filter: drop-shadow(0px 6px 12px rgba(0, 0, 0, 0.08));
-      transition: transform 0.2s ease;
+      transition: background 1s cubic-bezier(0.16, 1, 0.3, 1), transform 0.2s ease;
     }
 
-    .kanji-container:active {
+    .kanji-display:active {
       transform: scale(0.96);
-    }
-
-    /* Le sang plat qui monte (#8B0000) */
-    .blood-fill {
-      position: absolute;
-      bottom: 0;
-      left: 0;
-      width: 100%;
-      height: 0%;
-      background-color: #8B0000;
-      transition: height 1s cubic-bezier(0.16, 1, 0.3, 1);
-    }
-
-    .svg-mask {
-      position: absolute;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      z-index: 2;
     }
 
     /* Modales et dialogues */
@@ -144,20 +129,8 @@
 </head>
 <body>
 
-  <!-- Le Kanji 愛 central -->
-  <div class="kanji-container" id="mainKanji">
-    <div class="blood-fill" id="bloodFill"></div>
-    <svg class="svg-mask" viewBox="0 0 100 100">
-      <defs>
-        <mask id="kanji-mask">
-          <rect width="100" height="100" fill="white" />
-          <text x="50%" y="74%" font-size="72" font-family="serif" text-anchor="middle" fill="black" font-weight="bold">愛</text>
-        </mask>
-      </defs>
-      <rect width="100" height="100" fill="#E6E6E6" mask="url(#kanji-mask)" />
-      <text x="50%" y="74%" font-size="72" font-family="serif" text-anchor="middle" fill="none" stroke="#1A1A1A" stroke-width="0.4">愛</text>
-    </svg>
-  </div>
+  <!-- Le Kanji 愛 central géré par gradient CSS -->
+  <div class="kanji-display" id="kanjiDisplay">愛</div>
 
   <!-- Étape 1 : Demande binaire -->
   <div class="modal-overlay hidden" id="modalPrompt">
@@ -194,9 +167,7 @@
   </div>
 
   <script>
-    // Éléments du DOM
-    const mainKanji = document.getElementById('mainKanji');
-    const bloodFill = document.getElementById('bloodFill');
+    const kanjiDisplay = document.getElementById('kanjiDisplay');
     
     const modalPrompt = document.getElementById('modalPrompt');
     const modalWish = document.getElementById('modalWish');
@@ -216,8 +187,8 @@
     let currentWish = '';
     let isFilled = false;
 
-    // Clic sur le Kanji vide pour démarrer
-    mainKanji.addEventListener('click', () => {
+    // Clic sur le Kanji pour démarrer
+    kanjiDisplay.addEventListener('click', () => {
       if (!isFilled) {
         modalPrompt.classList.remove('hidden');
       }
@@ -260,7 +231,6 @@
       // Vérification anti-doublon dans le localStorage
       const savedMemories = JSON.parse(localStorage.getItem('gara_memories') || '[]');
       if (savedMemories.includes(memoryText)) {
-        // Déclencher l'état de colère
         modalMemory.classList.add('hidden');
         modalAngry.classList.remove('hidden');
         setTimeout(() => {
@@ -275,15 +245,17 @@
       savedMemories.push(memoryText);
       localStorage.setItem('gara_memories', JSON.stringify(savedMemories));
 
-      // Calcul du niveau de sang (Poids sémantique local)
+      // Calcul du score sémantique
       let score = Math.min(100, memoryText.length * 2 + currentWish.length * 2);
       const heavyWords = ['jamais', 'oublier', 'disparaître', 'regret', 'personne', 'pourquoi'];
       heavyWords.forEach(w => {
         if (memoryText.includes(w)) score += 20;
       });
 
-      // Remplir le Kanji avec le sang (#8B0000)
-      bloodFill.style.height = Math.min(100, score) + '%';
+      const fillPercent = Math.min(100, score);
+
+      // Appliquer le gradient CSS pour faire monter le sang dans le kanji
+      kanjiDisplay.style.background = `linear-gradient(to top, #8B0000 ${fillPercent}%, #1A1A1A ${fillPercent}%)`;
       isFilled = true;
 
       // Fermer les modales
